@@ -1,0 +1,166 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isStaff() {
+      return isSignedIn() && (
+        request.auth.token.email == 'sathvikachennappagari@gmail.com' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         getUserData().role in ['DOCTOR', 'NURSE', 'HOSPITAL_ADMIN', 'BLOOD_COORDINATOR', 'PLATFORM_ADMIN'])
+      );
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'sathvikachennappagari@gmail.com' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         getUserData().role in ['HOSPITAL_ADMIN', 'PLATFORM_ADMIN'])
+      );
+    }
+
+    // Sanity / connection test endpoint
+    match /test/{testId} {
+      allow read: if true;
+      allow write: if isSignedIn() && isValidId(testId);
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(userId);
+      allow update: if isSignedIn() && isValidId(userId) && (
+        request.auth.uid == userId || isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Patients collection - Medical records & PII isolation
+    match /patients/{patientId} {
+      allow read: if isStaff() || (isSignedIn() && isValidId(patientId) && (
+        request.auth.uid == patientId ||
+        (resource != null && resource.data.id == request.auth.uid)
+      ));
+      allow create: if isSignedIn() && isValidId(patientId);
+      allow update: if isStaff() || (isSignedIn() && isValidId(patientId) && (
+        request.auth.uid == patientId ||
+        (resource != null && resource.data.id == request.auth.uid)
+      ));
+      allow delete: if isAdmin();
+    }
+
+    // Queue collection - Live prioritized queue tokens
+    match /queue/{queueId} {
+      // Authenticated users and waiting room displays can view live queue positions
+      allow read: if isSignedIn();
+      // Registration can create token
+      allow create: if isSignedIn() && isValidId(queueId);
+      // Only authorized clinical staff may change triage priorities, emergency status, or workflow state
+      allow update: if isStaff() && isValidId(queueId);
+      allow delete: if isStaff() && isValidId(queueId);
+    }
+
+    // Triage assessments
+    match /triage/{triageId} {
+      allow read: if isStaff() || (isSignedIn() && isValidId(triageId) && resource.data.patientId == request.auth.uid);
+      allow create: if isStaff() && isValidId(triageId);
+      allow update: if isStaff() && isValidId(triageId);
+      allow delete: if isAdmin();
+    }
+
+    // Hospitals directory & insurance empanelment data
+    match /hospitals/{hospitalId} {
+      allow read: if true; // Public discovery
+      allow create: if isAdmin() && isValidId(hospitalId);
+      allow update: if (isAdmin() || isStaff()) && isValidId(hospitalId);
+      allow delete: if isAdmin() && isValidId(hospitalId);
+    }
+
+    // Blood Donors directory
+    match /bloodDonors/{donorId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(donorId);
+      allow update: if (isStaff() || (isSignedIn() && request.auth.uid == donorId)) && isValidId(donorId);
+      allow delete: if isAdmin();
+    }
+
+    // Blood Requests
+    match /bloodRequests/{requestId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(requestId);
+      allow update: if isStaff() && isValidId(requestId);
+      allow delete: if isAdmin();
+    }
+
+    // Appointments
+    match /appointments/{appointmentId} {
+      allow read: if isStaff() || (isSignedIn() && isValidId(appointmentId) && resource.data.patientId == request.auth.uid);
+      allow create: if isSignedIn() && isValidId(appointmentId);
+      allow update: if (isStaff() || (isSignedIn() && resource.data.patientId == request.auth.uid)) && isValidId(appointmentId);
+      allow delete: if isStaff();
+    }
+
+    // Health measurements & vitals
+    match /healthMeasurements/{measurementId} {
+      allow read: if isStaff() || (isSignedIn() && resource.data.patientId == request.auth.uid);
+      allow create: if isSignedIn() && isValidId(measurementId);
+      allow update: if isStaff();
+      allow delete: if isAdmin();
+    }
+
+    // Medications
+    match /medications/{medicationId} {
+      allow read: if isStaff() || (isSignedIn() && resource.data.patientId == request.auth.uid);
+      allow create: if isStaff() && isValidId(medicationId);
+      allow update: if isStaff() || (isSignedIn() && resource.data.patientId == request.auth.uid);
+      allow delete: if isStaff();
+    }
+
+    // Digital Prescriptions
+    match /prescriptions/{prescriptionId} {
+      allow read: if isStaff() || (isSignedIn() && resource.data.patientId == request.auth.uid);
+      allow create: if isStaff() && isValidId(prescriptionId);
+      allow update: if isStaff();
+      allow delete: if isAdmin();
+    }
+
+    // Invoices & Billing
+    match /invoices/{invoiceId} {
+      allow read: if isStaff() || (isSignedIn() && resource.data.patientId == request.auth.uid);
+      allow create: if isStaff() && isValidId(invoiceId);
+      allow update: if isSignedIn() && isValidId(invoiceId);
+      allow delete: if isAdmin();
+    }
+
+    // Audit logs - Immutable append-only
+    match /auditLogs/{auditId} {
+      allow read: if isStaff();
+      allow create: if isSignedIn() && isValidId(auditId);
+      allow update, delete: if false; // strictly immutable
+    }
+
+    // Disease conditions reference library
+    match /diseaseConditions/{conditionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

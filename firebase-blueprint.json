@@ -1,0 +1,253 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile representing a patient, healthcare provider, or administrator",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "role": {
+          "type": "string",
+          "enum": ["PATIENT", "DOCTOR", "NURSE", "HOSPITAL_ADMIN", "DONOR", "BLOOD_COORDINATOR", "PLATFORM_ADMIN"]
+        },
+        "language": { "type": "string", "enum": ["en", "te", "hi"] },
+        "avatarUrl": { "type": "string", "maxLength": 500 },
+        "hospitalId": { "type": "string", "maxLength": 128 },
+        "departmentId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "name", "email", "role"]
+    },
+    "Patient": {
+      "title": "Patient",
+      "description": "Patient medical registration record and demographic details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "identifier": { "type": "string", "maxLength": 64 },
+        "fullName": { "type": "string", "maxLength": 120 },
+        "dateOfBirth": { "type": "string", "maxLength": 30 },
+        "age": { "type": "number" },
+        "gender": { "type": "string", "enum": ["MALE", "FEMALE", "OTHER"] },
+        "phone": { "type": "string", "maxLength": 30 },
+        "preferredLanguage": { "type": "string", "enum": ["en", "te", "hi"] },
+        "bloodGroup": { "type": "string", "enum": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] },
+        "city": { "type": "string", "maxLength": 80 },
+        "address": { "type": "string", "maxLength": 250 },
+        "consentGiven": { "type": "boolean" },
+        "registeredAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "identifier", "fullName", "phone", "registeredAt"]
+    },
+    "QueueEntry": {
+      "title": "QueueEntry",
+      "description": "Real-time prioritized patient waiting token with dynamic triage rating and emergency status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "visitId": { "type": "string", "maxLength": 128 },
+        "patientId": { "type": "string", "maxLength": 128 },
+        "patientName": { "type": "string", "maxLength": 120 },
+        "patientAge": { "type": "number" },
+        "patientGender": { "type": "string", "enum": ["MALE", "FEMALE", "OTHER"] },
+        "tokenNumber": { "type": "string", "maxLength": 30 },
+        "hospitalId": { "type": "string", "maxLength": 128 },
+        "hospitalName": { "type": "string", "maxLength": 150 },
+        "departmentId": { "type": "string", "maxLength": 128 },
+        "departmentName": { "type": "string", "maxLength": 120 },
+        "assignedDoctorId": { "type": "string", "maxLength": 128 },
+        "assignedDoctorName": { "type": "string", "maxLength": 120 },
+        "registeredAt": { "type": "string", "maxLength": 64 },
+        "urgency": { "type": "string", "enum": ["IMMEDIATE", "URGENT", "STANDARD", "NON_URGENT"] },
+        "status": {
+          "type": "string",
+          "enum": [
+            "REGISTERED",
+            "AWAITING_TRIAGE",
+            "TRIAGE_COMPLETED",
+            "WAITING_FOR_CONSULTATION",
+            "IN_CONSULTATION",
+            "COMPLETED",
+            "REFERRED",
+            "DISCHARGED"
+          ]
+        },
+        "priorityScore": { "type": "number" },
+        "estimatedWaitMinutes": { "type": "number" },
+        "arrivalOrder": { "type": "number" },
+        "triageAssessmentId": { "type": "string", "maxLength": 128 },
+        "chiefComplaint": { "type": "string", "maxLength": 300 },
+        "reassessmentDue": { "type": "boolean" },
+        "staffAlertAcknowledged": { "type": "boolean" },
+        "overrideReason": { "type": "string", "maxLength": 400 },
+        "lastUpdatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "patientId", "tokenNumber", "hospitalId", "urgency", "status", "priorityScore"]
+    },
+    "TriageAssessment": {
+      "title": "TriageAssessment",
+      "description": "Clinical triage urgency evaluation and vital sign records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "visitId": { "type": "string", "maxLength": 128 },
+        "patientId": { "type": "string", "maxLength": 128 },
+        "assessedBy": { "type": "string", "maxLength": 120 },
+        "assessedByRole": { "type": "string", "maxLength": 50 },
+        "assessedAt": { "type": "string", "maxLength": 64 },
+        "urgency": { "type": "string", "enum": ["IMMEDIATE", "URGENT", "STANDARD", "NON_URGENT"] },
+        "chiefComplaint": { "type": "string", "maxLength": 300 },
+        "symptomDuration": { "type": "string", "maxLength": 100 },
+        "protocolVersion": { "type": "string", "maxLength": 50 },
+        "clinicalNotes": { "type": "string", "maxLength": 1000 },
+        "overrideApplied": { "type": "boolean" },
+        "overrideReason": { "type": "string", "maxLength": 400 }
+      },
+      "required": ["id", "patientId", "urgency", "assessedAt"]
+    },
+    "Hospital": {
+      "title": "Hospital",
+      "description": "Healthcare facility details, departments, verified empanelment and insurance information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "facilityIdentifier": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 150 },
+        "tagline": { "type": "string", "maxLength": 200 },
+        "city": { "type": "string", "maxLength": 80 },
+        "state": { "type": "string", "maxLength": 80 },
+        "address": { "type": "string", "maxLength": 250 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "emergencyPhone": { "type": "string", "maxLength": 30 },
+        "email": { "type": "string", "maxLength": 100 },
+        "operatingHours": { "type": "string", "maxLength": 80 },
+        "emergencyServicesAvailable": { "type": "boolean" },
+        "verificationStatus": {
+          "type": "string",
+          "enum": ["VERIFIED", "SELF_REPORTED", "PENDING_REVIEW", "REJECTED"]
+        },
+        "lastVerifiedDate": { "type": "string", "maxLength": 40 },
+        "rating": { "type": "number" },
+        "reviewCount": { "type": "number" },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" }
+      },
+      "required": ["id", "name", "city", "phone", "verificationStatus"]
+    },
+    "BloodDonor": {
+      "title": "BloodDonor",
+      "description": "Registered compatible blood donor profile and availability status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "bloodGroup": { "type": "string", "enum": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] },
+        "city": { "type": "string", "maxLength": 80 },
+        "area": { "type": "string", "maxLength": 100 },
+        "isAvailable": { "type": "boolean" },
+        "availabilityExpiry": { "type": "string", "maxLength": 64 },
+        "lastConfirmedAt": { "type": "string", "maxLength": 64 },
+        "donationCount": { "type": "number" }
+      },
+      "required": ["id", "displayName", "bloodGroup", "city", "isAvailable"]
+    },
+    "BloodRequest": {
+      "title": "BloodRequest",
+      "description": "Urgent and planned clinical blood request dispatch",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "requestIdentifier": { "type": "string", "maxLength": 64 },
+        "patientName": { "type": "string", "maxLength": 120 },
+        "hospitalName": { "type": "string", "maxLength": 150 },
+        "city": { "type": "string", "maxLength": 80 },
+        "bloodGroup": { "type": "string", "enum": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] },
+        "unitsNeeded": { "type": "number" },
+        "urgency": { "type": "string", "enum": ["CRITICAL_IMMEDIATE", "URGENT_24H", "PLANNED_72H"] },
+        "status": { "type": "string", "enum": ["OPEN", "MATCHING", "DONOR_CONTACTED", "DONOR_ACCEPTED", "COORDINATION_IN_PROGRESS", "FULFILLED", "CANCELLED", "EXPIRED"] },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "requestIdentifier", "patientName", "hospitalName", "bloodGroup", "unitsNeeded", "status"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Scheduled or confirmed outpatient appointment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "patientId": { "type": "string", "maxLength": 128 },
+        "patientName": { "type": "string", "maxLength": 120 },
+        "hospitalId": { "type": "string", "maxLength": 128 },
+        "hospitalName": { "type": "string", "maxLength": 150 },
+        "departmentName": { "type": "string", "maxLength": 120 },
+        "doctorName": { "type": "string", "maxLength": 120 },
+        "dateTime": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "enum": ["SCHEDULED", "CONFIRMED", "IN_PROGRESS", "COMPLETED", "CANCELLED"] },
+        "reasonForVisit": { "type": "string", "maxLength": 300 }
+      },
+      "required": ["id", "patientId", "hospitalId", "doctorName", "dateTime", "status"]
+    },
+    "AuditLogEntry": {
+      "title": "AuditLogEntry",
+      "description": "Immutable append-only audit trail recording clinical events and administrative operations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "timestamp": { "type": "string", "maxLength": 64 },
+        "actorUserId": { "type": "string", "maxLength": 128 },
+        "actorRole": { "type": "string", "maxLength": 50 },
+        "actorName": { "type": "string", "maxLength": 120 },
+        "action": { "type": "string", "maxLength": 100 },
+        "targetEntity": { "type": "string", "maxLength": 60 },
+        "targetId": { "type": "string", "maxLength": 128 },
+        "details": { "type": "string", "maxLength": 500 }
+      },
+      "required": ["id", "timestamp", "actorUserId", "action", "targetEntity", "targetId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of user profiles and authentication role metadata"
+    },
+    "/patients/{patientId}": {
+      "schema": "Patient",
+      "description": "Medical patient demographic records and intake registration"
+    },
+    "/queue/{queueId}": {
+      "schema": "QueueEntry",
+      "description": "Real-time prioritized patient queue tokens across hospital departments"
+    },
+    "/triage/{triageId}": {
+      "schema": "TriageAssessment",
+      "description": "Triage assessment records and protocol urgency logs"
+    },
+    "/hospitals/{hospitalId}": {
+      "schema": "Hospital",
+      "description": "Hospital facility profiles, empanelled insurance matrices, and departments"
+    },
+    "/bloodDonors/{donorId}": {
+      "schema": "BloodDonor",
+      "description": "Active blood donor availability directory"
+    },
+    "/bloodRequests/{requestId}": {
+      "schema": "BloodRequest",
+      "description": "Emergency and scheduled clinical blood donation requests"
+    },
+    "/appointments/{appointmentId}": {
+      "schema": "Appointment",
+      "description": "Confirmed and scheduled outpatient clinical consultations"
+    },
+    "/auditLogs/{auditId}": {
+      "schema": "AuditLogEntry",
+      "description": "Immutable clinical audit logs"
+    },
+    "/test/{testId}": {
+      "schema": "User",
+      "description": "Database connection sanity testing probe"
+    }
+  }
+}

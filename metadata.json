@@ -1,0 +1,11 @@
+{
+  "name": "Remix Remix MART Health",
+  "description": "MART Health — Connected Care, Smarter Queues, and Accessible Healthcare platform connecting patients, emergency triage, hospital queues, and donor networks.",
+  "requestFramePermissions": [
+    "geolocation",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

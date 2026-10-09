@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://mart_user:mart_pass@postgres:5432/mart_health
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: mart_health_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: mart_health
+      POSTGRES_USER: mart_user
+      POSTGRES_PASSWORD: mart_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
